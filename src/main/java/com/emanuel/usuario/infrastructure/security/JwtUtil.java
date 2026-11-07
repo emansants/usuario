@@ -2,23 +2,23 @@ package com.emanuel.usuario.infrastructure.security;
 
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import javax.crypto.SecretKey;
+import java.util.Base64;
 import java.util.Date;
 
 @Service
 public class JwtUtil {
 
-    // Chave secreta usada para assinar e verificar tokens JWT
-    private final SecretKey secretKey;
+    @Value("${secret.key}")
+    private String secretKey;
 
-    // Contrutor que gera uma chave secreta segura para assinatura usando o algoritmo HS256
-    public JwtUtil(){
-        // Gera uma chave secreta para o algoritmo do assinatura HS256
-        this.secretKey = Keys.secretKeyFor(SignatureAlgorithm.HS256);
+    private SecretKey getSecretKey(){
+        byte[] key = Base64.getDecoder().decode(secretKey);
+        return Keys.hmacShaKeyFor(key);
     }
 
     // Gera um token JWT com o nome de usuário e validade de 1 hora
@@ -27,14 +27,14 @@ public class JwtUtil {
                 .setSubject(username) // Define o nome de usuário como o assunto do token
                 .setIssuedAt(new Date()) // Define a data e hora de emissão do token
                 .setExpiration(new Date(System.currentTimeMillis() + 1000 * 60 * 60)) // Define a data e hora de expiração (1 hora a partir da emissão)
-                .signWith(secretKey) // Assina o token com a chave secreta
+                .signWith(getSecretKey()) // Assina o token com a chave secreta
                 .compact(); // Constrói o token JWT
     }
 
     // Extrai as claims do token JWT (informações adicionais do token)
     public Claims extractClaims(String token) {
         return Jwts.parser()
-                .setSigningKey(secretKey) // Define a chave secreta para validar a assinatura do token
+                .setSigningKey(getSecretKey()) // Define a chave secreta para validar a assinatura do token
                 .build()
                 .parseClaimsJws(token) // Analisa o token JWT e obtém as claims
                 .getBody(); // Retorna o corpo das claims
